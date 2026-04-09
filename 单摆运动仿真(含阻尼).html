@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单摆系统虚拟仿真（含阻尼振动）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a3a, #0f1722);
+            color: #e0f0ff;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
+        }
+        
+        h1 {
+            font-size: 2.6rem;
+            background: linear-gradient(90deg, #6ab7ff, #3d8eff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #a0c8ff;
+            max-width: 800px;
+            margin: 0 auto 15px;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .simulation-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(20, 30, 48, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .controls-panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(20, 30, 48, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .panel-title {
+            font-size: 1.6rem;
+            color: #6ab7ff;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
+            display: flex;
+            align-items: center;
+        }
+        
+        .panel-title i {
+            margin-right: 10px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            background: rgba(10, 20, 35, 0.8);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        #pendulumCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        .control-title {
+            font-size: 1.2rem;
+            color: #8cc9ff;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .control-value {
+            color: #3d8eff;
+            font-weight: bold;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .slider-label {
+            min-width: 120px;
+            color: #b0d4ff;
+        }
+        
+        input[type="range"] {
+            flex-grow: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #1a5fb4, #3d8eff);
+            border-radius: 4px;
+            outline: none;
+            margin: 0 15px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #6ab7ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(106, 183, 255, 0.8);
+            border: 2px solid #e0f0ff;
+        }
+        
+        .value-display {
+            min-width: 60px;
+            text-align: right;
+            color: #3d8eff;
+            font-weight: bold;
+        }
+        
+        .buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #1a9e3d, #2ecc71);
+            color: white;
+        }
+        
+        .btn-pause {
+            background: linear-gradient(135deg, #d4a017, #f1c40f);
+            color: white;
+        }
+        
+        .btn-reset {
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .data-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+        
+        .data-card {
+            background: rgba(10, 20, 35, 0.6);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(64, 156, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .data-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(64, 156, 255, 0.3);
+        }
+        
+        .data-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #6ab7ff;
+            margin: 10px 0 5px;
+        }
+        
+        .data-unit {
+            font-size: 1rem;
+            color: #a0c8ff;
+        }
+        
+        .data-label {
+            font-size: 1.1rem;
+            color: #b0d4ff;
+        }
+        
+        .energy-chart-container {
+            background: rgba(20, 30, 48, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            margin-top: 25px;
+        }
+        
+        #energyChart {
+            width: 100%;
+            height: 300px;
+            background: rgba(10, 20, 35, 0.8);
+            border-radius: 10px;
+        }
+        
+        .instructions {
+            background: rgba(20, 30, 48, 0.7);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .instructions h3 {
+            color: #6ab7ff;
+            margin-bottom: 15px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+            color: #b0d4ff;
+        }
+        
+        .formula {
+            background: rgba(10, 20, 35, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Cambria', 'Times New Roman', serif;
+            text-align: center;
+            border-left: 4px solid #3d8eff;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(64, 156, 255, 0.3);
+            color: #a0c8ff;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .data-panel {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .data-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .buttons-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-weight-hanging"></i> 单摆系统虚拟仿真</h1>
+            <p class="subtitle">模拟单摆的阻尼振动，可调整摆长、重力加速度、初始角度和阻尼系数，观察能量衰减和运动轨迹变化</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="simulation-panel">
+                <h2 class="panel-title"><i class="fas fa-desktop"></i> 仿真视图</h2>
+                <div class="canvas-container">
+                    <canvas id="pendulumCanvas"></canvas>
+                </div>
+                
+                <div class="data-panel">
+                    <div class="data-card">
+                        <div class="data-label">当前角度</div>
+                        <div class="data-value" id="angleValue">0.00</div>
+                        <div class="data-unit">度</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">角速度</div>
+                        <div class="data-value" id="angularVelocityValue">0.00</div>
+                        <div class="data-unit">rad/s</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">动能</div>
+                        <div class="data-value" id="kineticEnergyValue">0.00</div>
+                        <div class="data-unit">J</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">势能</div>
+                        <div class="data-value" id="potentialEnergyValue">0.00</div>
+                        <div class="data-unit">J</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">总能量</div>
+                        <div class="data-value" id="totalEnergyValue">0.00</div>
+                        <div class="data-unit">J</div>
+                    </div>
+                    <div class="data-card">
+                        <div class="data-label">振荡周期</div>
+                        <div class="data-value" id="periodCount">0</div>
+                        <div class="data-unit">次</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls-panel">
+                <h2 class="panel-title"><i class="fas fa-sliders-h"></i> 控制面板</h2>
+                
+                <div class="control-group">
+                    <div class="control-title">
+                        <span>摆长控制</span>
+                        <span class="control-value"><span id="lengthValue">1.0</span> m</span>
+                    </div>
+                    <div class="slider-container">
+                        <span class="slider-label">摆长 (m)</span>
+                        <input type="range" id="lengthSlider" min="0.5" max="3.0" step="0.1" value="1.0">
+                        <span class="value-display" id="lengthDisplay">1.0</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-title">
+                        <span>重力加速度</span>
+                        <span class="control-value"><span id="gravityValue">9.8</span> m/s²</span>
+                    </div>
+                    <div class="slider-container">
+                        <span class="slider-label">重力 (m/s²)</span>
+                        <input type="range" id="gravitySlider" min="1.0" max="15.0" step="0.1" value="9.8">
+                        <span class="value-display" id="gravityDisplay">9.8</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-title">
+                        <span>初始角度</span>
+                        <span class="control-value"><span id="angleInitValue">15</span> °</span>
+                    </div>
+                    <div class="slider-container">
+                        <span class="slider-label">初始角度 (°)</span>
+                        <input type="range" id="angleSlider" min="5" max="90" step="1" value="15">
+                        <span class="value-display" id="angleDisplay">15</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-title">
+                        <span>阻尼系数</span>
+                        <span class="control-value"><span id="dampingValue">0.1</span> 1/s</span>
+                    </div>
+                    <div class="slider-container">
+                        <span class="slider-label">阻尼系数 (1/s)</span>
+                        <input type="range" id="dampingSlider" min="0.0" max="2.0" step="0.05" value="0.1">
+                        <span class="value-display" id="dampingDisplay">0.1</span>
+                    </div>
+                </div>
+                
+                <div class="buttons-container">
+                    <button class="btn btn-start" id="startBtn">
+                        <i class="fas fa-play"></i> 启动
+                    </button>
+                    <button class="btn btn-pause" id="pauseBtn">
+                        <i class="fas fa-pause"></i> 暂停
+                    </button>
+                    <button class="btn btn-reset" id="resetBtn">
+                        <i class="fas fa-redo"></i> 重置
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="energy-chart-container">
+            <h2 class="panel-title"><i class="fas fa-chart-line"></i> 能量变化曲线</h2>
+            <canvas id="energyChart"></canvas>
+        </div>
+        
+        <div class="instructions">
+            <h3><i class="fas fa-info-circle"></i> 仿真说明与物理模型</h3>
+            <p>本仿真模拟了考虑空气阻力的单摆阻尼振动。阻尼振动是指振幅逐渐减小的振动，其运动方程如下：</p>
+            
+            <div class="formula">
+                θ''(t) + k·θ'(t) + (g/L)·sin(θ(t)) = 0
+            </div>
+            
+            <p>其中：</p>
+            <ul>
+                <li><strong>θ(t)</strong> 是单摆的角位移（弧度）</li>
+                <li><strong>θ'(t)</strong> 和 <strong>θ''(t)</strong> 分别是角速度和角加速度</li>
+                <li><strong>g</strong> 是重力加速度（m/s²）</li>
+                <li><strong>L</strong> 是摆长（m）</li>
+                <li><strong>k</strong> 是阻尼系数（1/s），与空气阻力相关</li>
+                <li><strong>sin(θ)</strong> 是正弦函数，当 θ 较小时，sin(θ) ≈ θ（小角度近似）</li>
+            </ul>
+            
+            <p>能量计算：</p>
+            <ul>
+                <li><strong>势能</strong>：E<sub>p</sub> = m·g·L·(1 - cosθ)</li>
+                <li><strong>动能</strong>：E<sub>k</strong> = ½·m·(L·θ')²</li>
+                <li><strong>总能量</strong>：E<sub>total</sub> = E<sub>k</sub> + E<sub>p</sub></li>
+                <li>注：本仿真中假设摆球质量 m = 1 kg</li>
+            </ul>
+            
+            <p>通过调整阻尼系数，可以观察到：</p>
+            <ul>
+                <li><strong>k = 0</strong>：无阻尼振动，能量守恒，振幅不变</li>
+                <li><strong>0 < k < 临界值</strong>：欠阻尼振动，振幅逐渐减小</li>
+                <li><strong>k ≥ 临界值</strong>：过阻尼或临界阻尼，摆球缓慢回到平衡位置而不振荡</li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p>单摆系统虚拟仿真（含阻尼振动） | 使用纯HTML5 Canvas和JavaScript实现 | 物理模拟使用四阶Runge-Kutta方法求解微分方程</p>
+        </footer>
+    </div>
+
+    <script>
+        // 获取Canvas元素和上下文
+        const pendulumCanvas = document.getElementById('pendulumCanvas');
+        const energyChartCanvas = document.getElementById('energyChart');
+        const ctx = pendulumCanvas.getContext('2d');
+        const energyCtx = energyChartCanvas.getContext('2d');
+        
+        // 设置Canvas尺寸
+        function resizeCanvases() {
+            const containerWidth = document.querySelector('.canvas-container').clientWidth;
+            const chartWidth = document.querySelector('.energy-chart-container').clientWidth;
+            
+            pendulumCanvas.width = containerWidth;
+            pendulumCanvas.height = 450;
+            
+            energyChartCanvas.width = chartWidth;
+            energyChartCanvas.height = 300;
+            
+            // 重新绘制
+            drawPendulum();
+            drawEnergyChart();
+        }
+        
+        // 单摆状态变量
+        let pendulum = {
+            angle: 15 * Math.PI / 180, // 初始角度（弧度）
+            angularVelocity: 0,        // 角速度（rad/s）
+            length: 1.0,               // 摆长（m）
+            gravity: 9.8,              // 重力加速度（m/s²）
+            damping: 0.1,              // 阻尼系数（1/s）
+            pivotX: 0,                 // 支点X坐标（将在初始化时设置）
+            pivotY: 0,                 // 支点Y坐标
+            bobRadius: 15,             // 摆球半径（像素）
+            trail: [],                 // 轨迹点数组
+            trailMaxLength: 100,       // 轨迹最大长度
+            isAnimating: false,        // 动画状态
+            lastTime: 0,               // 上一帧时间
+            periodCount: 0,            // 振荡周期计数
+            lastZeroCrossing: 0,       // 上次过零点的时间
+            mass: 1.0                  // 摆球质量（kg）
+        };
+        
+        // 能量数据
+        let energyData = {
+            kinetic: [],
+            potential: [],
+            total: [],
+            time: [],
+            maxDataPoints: 100
+        };
+        
+        // 获取DOM元素
+        const lengthSlider = document.getElementById('lengthSlider');
+        const gravitySlider = document.getElementById('gravitySlider');
+        const angleSlider = document.getElementById('angleSlider');
+        const dampingSlider = document.getElementById('dampingSlider');
+        
+        const lengthDisplay = document.getElementById('lengthDisplay');
+        const gravityDisplay = document.getElementById('gravityDisplay');
+        const angleDisplay = document.getElementById('angleDisplay');
+        const dampingDisplay = document.getElementById('dampingDisplay');
+        
+        const lengthValue = document.getElementById('lengthValue');
+        const gravityValue = document.getElementById('gravityValue');
+        const angleInitValue = document.getElementById('angleInitValue');
+        const dampingValue = document.getElementById('dampingValue');
+        
+        const angleValue = document.getElementById('angleValue');
+        const angularVelocityValue = document.getElementById('angularVelocityValue');
+        const kineticEnergyValue = document.getElementById('kineticEnergyValue');
+        const potentialEnergyValue = document.getElementById('potentialEnergyValue');
+        const totalEnergyValue = document.getElementById('totalEnergyValue');
+        const periodCount = document.getElementById('periodCount');
+        
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        
+        // 初始化函数
+        function init() {
+            // 设置Canvas尺寸
+            resizeCanvases();
+            
+            // 设置支点位置
+            pendulum.pivotX = pendulumCanvas.width / 2;
+            pendulum.pivotY = pendulumCanvas.height * 0.3;
+            
+            // 初始化单摆角度
+            pendulum.angle = parseFloat(angleSlider.value) * Math.PI / 180;
+            
+            // 清空轨迹和能量数据
+            pendulum.trail = [];
+            energyData.kinetic = [];
+            energyData.potential = [];
+            energyData.total = [];
+            energyData.time = [];
+            
+            // 添加初始点
+            addTrailPoint();
+            updateEnergyData();
+            
+            // 绘制初始状态
+            drawPendulum();
+            drawEnergyChart();
+            
+            // 更新数据显示
+            updateDataDisplay();
+        }
+        
+        // 窗口大小改变时重新调整Canvas尺寸
+        window.addEventListener('resize', resizeCanvases);
+        
+        // 滑块事件监听
+        lengthSlider.addEventListener('input', function() {
+            pendulum.length = parseFloat(this.value);
+            lengthDisplay.textContent = pendulum.length.toFixed(1);
+            lengthValue.textContent = pendulum.length.toFixed(1);
+            
+            if (!pendulum.isAnimating) {
+                init();
+            }
+        });
+        
+        gravitySlider.addEventListener('input', function() {
+            pendulum.gravity = parseFloat(this.value);
+            gravityDisplay.textContent = pendulum.gravity.toFixed(1);
+            gravityValue.textContent = pendulum.gravity.toFixed(1);
+            
+            if (!pendulum.isAnimating) {
+                updateEnergyData();
+                updateDataDisplay();
+                drawPendulum();
+            }
+        });
+        
+        angleSlider.addEventListener('input', function() {
+            const angle = parseFloat(this.value);
+            pendulum.angle = angle * Math.PI / 180;
+            angleDisplay.textContent = angle;
+            angleInitValue.textContent = angle;
+            
+            if (!pendulum.isAnimating) {
+                init();
+            }
+        });
+        
+        dampingSlider.addEventListener('input', function() {
+            pendulum.damping = parseFloat(this.value);
+            dampingDisplay.textContent = pendulum.damping.toFixed(2);
+            dampingValue.textContent = pendulum.damping.toFixed(2);
+        });
+        
+        // 按钮事件监听
+        startBtn.addEventListener('click', function() {
+            if (!pendulum.isAnimating) {
+                pendulum.isAnimating = true;
+                pendulum.lastTime = performance.now();
+                animate();
+            }
+        });
+        
+        pauseBtn.addEventListener('click', function() {
+            pendulum.isAnimating = false;
+        });
+        
+        resetBtn.addEventListener('click', function() {
+            pendulum.isAnimating = false;
+            pendulum.angularVelocity = 0;
+            pendulum.periodCount = 0;
+            pendulum.lastZeroCrossing = 0;
+            init();
+        });
+        
+        // 动画循环
+        function animate() {
+            if (!pendulum.isAnimating) return;
+            
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - pendulum.lastTime) / 1000; // 转换为秒
+            pendulum.lastTime = currentTime;
+            
+            // 使用Runge-Kutta方法更新单摆状态
+            updatePendulumRK4(deltaTime);
+            
+            // 添加轨迹点
+            addTrailPoint();
+            
+            // 更新能量数据
+            updateEnergyData();
+            
+            // 更新数据显示
+            updateDataDisplay();
+            
+            // 绘制
+            drawPendulum();
+            drawEnergyChart();
+            
+            // 继续动画循环
+            requestAnimationFrame(animate);
+        }
+        
+        // 使用四阶Runge-Kutta方法更新单摆状态
+        function updatePendulumRK4(dt) {
+            const state = [pendulum.angle, pendulum.angularVelocity];
+            
+            // RK4方法
+            const k1 = derivative(state);
+            const k2 = derivative([
+                state[0] + 0.5 * dt * k1[0],
+                state[1] + 0.5 * dt * k1[1]
+            ]);
+            const k3 = derivative([
+                state[0] + 0.5 * dt * k2[0],
+                state[1] + 0.5 * dt * k2[1]
+            ]);
+            const k4 = derivative([
+                state[0] + dt * k3[0],
+                state[1] + dt * k3[1]
+            ]);
+            
+            // 更新状态
+            pendulum.angle += (dt / 6) * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]);
+            pendulum.angularVelocity += (dt / 6) * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]);
+            
+            // 检测过零点，计算振荡周期
+            if (pendulum.lastZeroCrossing !== 0) {
+                if (Math.sign(state[0]) !== Math.sign(pendulum.angle) && Math.sign(state[0]) !== 0) {
+                    pendulum.periodCount++;
+                    pendulum.lastZeroCrossing = performance.now() / 1000;
+                }
+            } else {
+                pendulum.lastZeroCrossing = performance.now() / 1000;
+            }
+        }
+        
+        // 单摆运动微分方程
+        // 状态向量: [角度, 角速度]
+        // 导数: [角速度, 角加速度]
+        function derivative(state) {
+            const [theta, omega] = state;
+            
+            // 角加速度 = - (g/L) * sin(theta) - k * omega
+            const alpha = -(pendulum.gravity / pendulum.length) * Math.sin(theta) - pendulum.damping * omega;
+            
+            return [omega, alpha];
+        }
+        
+        // 添加轨迹点
+        function addTrailPoint() {
+            const scale = Math.min(pendulumCanvas.width, pendulumCanvas.height) * 0.4 / pendulum.length;
+            const bobX = pendulum.pivotX + pendulum.length * scale * Math.sin(pendulum.angle);
+            const bobY = pendulum.pivotY + pendulum.length * scale * Math.cos(pendulum.angle);
+            
+            pendulum.trail.push({
+                x: bobX,
+                y: bobY,
+                time: Date.now()
+            });
+            
+            // 限制轨迹长度
+            if (pendulum.trail.length > pendulum.trailMaxLength) {
+                pendulum.trail.shift();
+            }
+        }
+        
+        // 更新能量数据
+        function updateEnergyData() {
+            // 计算能量
+            const potentialEnergy = pendulum.mass * pendulum.gravity * pendulum.length * (1 - Math.cos(pendulum.angle));
+            const kineticEnergy = 0.5 * pendulum.mass * Math.pow(pendulum.length * pendulum.angularVelocity, 2);
+            const totalEnergy = kineticEnergy + potentialEnergy;
+            
+            const currentTime = performance.now() / 1000;
+            
+            // 添加能量数据点
+            energyData.kinetic.push(kineticEnergy);
+            energyData.potential.push(potentialEnergy);
+            energyData.total.push(totalEnergy);
+            energyData.time.push(currentTime);
+            
+            // 限制数据长度
+            if (energyData.kinetic.length > energyData.maxDataPoints) {
+                energyData.kinetic.shift();
+                energyData.potential.shift();
+                energyData.total.shift();
+                energyData.time.shift();
+            }
+        }
+        
+        // 更新数据显示
+        function updateDataDisplay() {
+            // 更新角度（转换为度）
+            angleValue.textContent = (pendulum.angle * 180 / Math.PI).toFixed(2);
+            
+            // 更新角速度
+            angularVelocityValue.textContent = pendulum.angularVelocity.toFixed(3);
+            
+            // 计算能量
+            const potentialEnergy = pendulum.mass * pendulum.gravity * pendulum.length * (1 - Math.cos(pendulum.angle));
+            const kineticEnergy = 0.5 * pendulum.mass * Math.pow(pendulum.length * pendulum.angularVelocity, 2);
+            const totalEnergy = kineticEnergy + potentialEnergy;
+            
+            // 更新能量显示
+            kineticEnergyValue.textContent = kineticEnergy.toFixed(3);
+            potentialEnergyValue.textContent = potentialEnergy.toFixed(3);
+            totalEnergyValue.textContent = totalEnergy.toFixed(3);
+            
+            // 更新周期计数
+            periodCount.textContent = Math.floor(pendulum.periodCount / 2);
+        }
+        
+        // 绘制单摆
+        function drawPendulum() {
+            const canvas = pendulumCanvas;
+            const ctx = canvas.getContext('2d');
+            
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 计算缩放比例
+            const scale = Math.min(canvas.width, canvas.height) * 0.4 / pendulum.length;
+            
+            // 计算摆球位置
+            const bobX = pendulum.pivotX + pendulum.length * scale * Math.sin(pendulum.angle);
+            const bobY = pendulum.pivotY + pendulum.length * scale * Math.cos(pendulum.angle);
+            
+            // 绘制网格背景
+            drawGrid(ctx, canvas.width, canvas.height);
+            
+            // 绘制角度刻度
+            drawAngleScale(ctx, pendulum.pivotX, pendulum.pivotY, scale * pendulum.length);
+            
+            // 绘制轨迹
+            drawTrail(ctx);
+            
+            // 绘制摆线
+            ctx.beginPath();
+            ctx.moveTo(pendulum.pivotX, pendulum.pivotY);
+            ctx.lineTo(bobX, bobY);
+            ctx.strokeStyle = '#6ab7ff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // 绘制支点
+            ctx.beginPath();
+            ctx.arc(pendulum.pivotX, pendulum.pivotY, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#3d8eff';
+            ctx.fill();
+            ctx.strokeStyle = '#e0f0ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 绘制摆球
+            const gradient = ctx.createRadialGradient(
+                bobX, bobY, 0,
+                bobX, bobY, pendulum.bobRadius
+            );
+            gradient.addColorStop(0, '#6ab7ff');
+            gradient.addColorStop(1, '#1a5fb4');
+            
+            ctx.beginPath();
+            ctx.arc(bobX, bobY, pendulum.bobRadius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // 摆球高光
+            ctx.beginPath();
+            ctx.arc(
+                bobX - pendulum.bobRadius * 0.3,
+                bobY - pendulum.bobRadius * 0.3,
+                pendulum.bobRadius * 0.4, 0, Math.PI * 2
+            );
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fill();
+            
+            // 绘制摆球边框
+            ctx.strokeStyle = '#e0f0ff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 绘制角度指示线
+          //  ctx.beginPath();
+         //   ctx.arc(pendulum.pivotX, pendulum.pivotY, scale * pendulum.length * 0.7, 0, pendulum.angle, pendulum.angle < 0);
+            //ctx.strokeStyle = 'rgba(255, 100, 100, 0.7)';
+         //   ctx.lineWidth = 2;
+           // ctx.stroke();
+            
+            // 绘制角度文本
+            ctx.fillStyle = '#ff6464';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            const angleDeg = (pendulum.angle * 180 / Math.PI).toFixed(1);
+            const angleText = `角度: ${angleDeg}°`;
+            const angleTextWidth = ctx.measureText(angleText).width;
+            ctx.fillText(angleText, pendulum.pivotX, pendulum.pivotY - 20);
+        }
+        
+        // 绘制网格背景
+        function drawGrid(ctx, width, height) {
+            const gridSize = 40;
+            const centerX = pendulum.pivotX;
+            const centerY = pendulum.pivotY;
+            
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // 垂直线
+            for (let x = centerX % gridSize; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            // 水平线
+            for (let y = centerY % gridSize; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            
+            // 中心十字
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.3)';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0);
+            ctx.lineTo(centerX, height);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+        }
+        
+        // 绘制角度刻度
+        function drawAngleScale(ctx, centerX, centerY, radius) {
+            ctx.strokeStyle = 'rgba(200, 220, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.font = '12px Arial';
+            ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 绘制角度刻度线
+            for (let angle = -90; angle <= 90; angle += 15) {
+                const angleRad = angle * Math.PI / 180;
+                const x1 = centerX + radius * Math.sin(angleRad);
+                const y1 = centerY + radius * Math.cos(angleRad);
+                
+                const x2 = centerX + (radius + 10) * Math.sin(angleRad);
+                const y2 = centerY + (radius + 10) * Math.cos(angleRad);
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+                
+                // 绘制角度标签
+                if (angle !== 0) {
+                    const labelX = centerX + (radius + 25) * Math.sin(angleRad);
+                    const labelY = centerY + (radius + 25) * Math.cos(angleRad);
+                    ctx.fillText(`${angle}°`, labelX, labelY);
+                } else {
+                    const labelX = centerX + (radius + 25) * Math.sin(angleRad);
+                    const labelY = centerY + (radius + 25) * Math.cos(angleRad) - 15;
+                    ctx.fillText(`${angle}°`, labelX, labelY);
+                }
+            }
+        }
+        
+        // 绘制轨迹
+        function drawTrail(ctx) {
+            if (pendulum.trail.length < 2) return;
+            
+            // 创建轨迹渐变色
+            const gradient = ctx.createLinearGradient(
+                pendulum.trail[0].x, pendulum.trail[0].y,
+                pendulum.trail[pendulum.trail.length - 1].x,
+                pendulum.trail[pendulum.trail.length - 1].y
+            );
+            
+            gradient.addColorStop(0, 'rgba(106, 183, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(106, 183, 255, 0.1)');
+            
+            ctx.beginPath();
+            ctx.moveTo(pendulum.trail[0].x, pendulum.trail[0].y);
+            
+            for (let i = 1; i < pendulum.trail.length; i++) {
+                ctx.lineTo(pendulum.trail[i].x, pendulum.trail[i].y);
+            }
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        
+        // 绘制能量图表
+        function drawEnergyChart() {
+            const canvas = energyChartCanvas;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // 清除画布
+            ctx.clearRect(0, 0, width, height);
+            
+            // 绘制背景
+            ctx.fillStyle = 'rgba(10, 20, 35, 0.8)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // 如果没有数据，返回
+            if (energyData.time.length < 2) return;
+            
+            // 计算数据范围
+            const timeValues = energyData.time;
+            const kineticValues = energyData.kinetic;
+            const potentialValues = energyData.potential;
+            const totalValues = energyData.total;
+            
+            const minTime = Math.min(...timeValues);
+            const maxTime = Math.max(...timeValues);
+            
+            const allEnergies = [...kineticValues, ...potentialValues, ...totalValues];
+            const maxEnergy = Math.max(...allEnergies);
+            const minEnergy = Math.min(...allEnergies);
+            
+            const timeRange = maxTime - minTime;
+            const energyRange = maxEnergy - minEnergy;
+            
+            // 绘制网格
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.1)';
+            ctx.lineWidth = 1;
+            
+            // 水平网格线
+            const horizontalLines = 5;
+            for (let i = 0; i <= horizontalLines; i++) {
+                const y = height - 30 - (i / horizontalLines) * (height - 60);
+                ctx.beginPath();
+                ctx.moveTo(40, y);
+                ctx.lineTo(width - 20, y);
+                ctx.stroke();
+                
+                // 刻度标签
+                const value = minEnergy + (i / horizontalLines) * energyRange;
+                ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(value.toFixed(2) + ' J', 35, y + 4);
+            }
+            
+            // 垂直网格线
+            const verticalLines = Math.min(10, timeValues.length - 1);
+            for (let i = 0; i <= verticalLines; i++) {
+                const x = 40 + (i / verticalLines) * (width - 60);
+                ctx.beginPath();
+                ctx.moveTo(x, 20);
+                ctx.lineTo(x, height - 30);
+                ctx.stroke();
+                
+                // 时间标签
+                if (timeValues.length > 0) {
+                    const timeIndex = Math.floor((i / verticalLines) * (timeValues.length - 1));
+                    const timeValue = timeValues[timeIndex] - minTime;
+                    ctx.fillStyle = 'rgba(200, 220, 255, 0.8)';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(timeValue.toFixed(1) + ' s', x, height - 10);
+                }
+            }
+            
+            // 绘制坐标轴
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.5)';
+            ctx.lineWidth = 2;
+            
+            // Y轴
+            ctx.beginPath();
+            ctx.moveTo(40, 20);
+            ctx.lineTo(40, height - 30);
+            ctx.stroke();
+            
+            // X轴
+            ctx.beginPath();
+            ctx.moveTo(40, height - 30);
+            ctx.lineTo(width - 20, height - 30);
+            ctx.stroke();
+            
+            // 轴标签
+            ctx.fillStyle = '#a0c8ff';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('时间 (s)', width / 2, height - 5);
+            
+            ctx.save();
+            ctx.translate(15, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('能量 (J)', 0, 0);
+            ctx.restore();
+            
+            // 绘制能量曲线
+            function drawEnergyCurve(data, color) {
+                if (data.length < 2) return;
+                
+                ctx.beginPath();
+                for (let i = 0; i < data.length; i++) {
+                    const x = 40 + ((timeValues[i] - minTime) / timeRange) * (width - 60);
+                    const y = height - 30 - ((data[i] - minEnergy) / energyRange) * (height - 60);
+                    
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                }
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+            
+            // 绘制动能曲线（蓝色）
+            drawEnergyCurve(kineticValues, '#3d8eff');
+            
+            // 绘制势能曲线（绿色）
+            drawEnergyCurve(potentialValues, '#2ecc71');
+            
+            // 绘制总能量曲线（橙色）
+            drawEnergyCurve(totalValues, '#e67e22');
+            
+            // 绘制图例
+            const legendX = width - 150;
+            const legendY = 40;
+            
+            ctx.fillStyle = 'rgba(20, 30, 48, 0.8)';
+            ctx.fillRect(legendX - 10, legendY - 20, 140, 100);
+            ctx.strokeStyle = 'rgba(100, 150, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(legendX - 10, legendY - 20, 140, 100);
+            
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = '#e0f0ff';
+            ctx.textAlign = 'left';
+            ctx.fillText('能量图例', legendX, legendY);
+            
+            ctx.font = '12px Arial';
+            
+            // 动能图例
+            ctx.fillStyle = '#3d8eff';
+            ctx.fillRect(legendX, legendY + 20, 15, 10);
+            ctx.fillStyle = '#e0f0ff';
+            ctx.fillText('动能', legendX + 25, legendY + 30);
+            
+            // 势能图例
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillRect(legendX, legendY + 40, 15, 10);
+            ctx.fillStyle = '#e0f0ff';
+            ctx.fillText('势能', legendX + 25, legendY + 50);
+            
+            // 总能量图例
+            ctx.fillStyle = '#e67e22';
+            ctx.fillRect(legendX, legendY + 60, 15, 10);
+            ctx.fillStyle = '#e0f0ff';
+            ctx.fillText('总能量', legendX + 25, legendY + 70);
+            
+            // 图表标题
+            ctx.fillStyle = '#6ab7ff';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('能量随时间变化曲线', width / 2, 30);
+            
+            // 阻尼系数显示
+            ctx.fillStyle = '#ff6464';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(`阻尼系数: ${pendulum.damping.toFixed(2)} 1/s`, 50, 40);
+        }
+        
+        // 初始化应用
+        window.addEventListener('load', function() {
+            init();
+        });
+    </script>
+</body>
+</html>
